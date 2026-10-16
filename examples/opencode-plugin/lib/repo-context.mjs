@@ -60,6 +60,28 @@ export function createRepoContext({ config }) {
   }
 }
 
+/**
+ * Merge the repo-context prompt into the last existing system entry instead of
+ * pushing a new one. OpenCode serializes each `output.system` entry as its own
+ * system message, so an extra entry yields two leading system messages, which
+ * providers requiring a single system message (e.g. litellm -> OpenAI) reject.
+ *
+ * @param {{ system?: string[] }} output system-transform hook output.
+ * @param {string | null | undefined} prompt repo-context prompt to inject.
+ * @returns {boolean} whether the prompt was injected.
+ */
+export function applyRepoSystemPrompt(output, prompt) {
+  if (!prompt || !Array.isArray(output?.system)) return false
+  const system = output.system
+  if (system.length === 0) {
+    system.push(prompt)
+  } else {
+    const last = system[system.length - 1]
+    system[system.length - 1] = last ? `${last}\n\n${prompt}` : prompt
+  }
+  return true
+}
+
 function formatRepoLine(item) {
   const name = item.uri.replace("viking://resources/", "").replace(/\/$/, "") || "resources"
   const abstract = item.abstract || item.overview

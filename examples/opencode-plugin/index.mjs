@@ -51,8 +51,7 @@ function v1Hooks(runtime) {
     "tool.execute.after": vikingUriNotice,
 
     "experimental.chat.system.transform": (_input, output) => {
-      const prompt = repoContext.getRepoSystemPrompt()
-      if (prompt) output.system.push(prompt)
+      applyRepoSystemPrompt(output, repoContext.getRepoSystemPrompt())
     },
 
     "chat.message": async (input, output) => {
