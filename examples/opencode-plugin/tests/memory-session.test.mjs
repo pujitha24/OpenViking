@@ -714,3 +714,25 @@ test("commit of a session the server no longer has drops the stale local mapping
     await new Promise((resolve) => server.close(resolve))
   }
 })
+
+test("message events never derive the subagent session id from a message parentID", async () => {
+  await withCaptureServer(async ({ endpoint }) => {
+    await withTempDir("ov-oc-session-", async (dir) => {
+      const manager = createMemorySessionManager({ config: baseConfig(endpoint), pluginRoot: dir })
+
+      await manager.init()
+      await manager.handleEvent({
+        type: "message.updated",
+        properties: { info: { id: "msg_child", sessionID: "ses_child", parentID: "msg_parent", role: "user" } },
+      })
+      await manager.handleEvent({
+        type: "session.created",
+        properties: { info: { id: "ses_child2", parentID: "ses_parent" } },
+      })
+
+      const bogus = manager.getMappedSessionId("ses_child")
+      assert.ok(!bogus.includes("msg_parent"), bogus)
+      assert.match(manager.getMappedSessionId("ses_child2"), /^oc-ses_parent__subagent-ses_child2$/)
+    })
+  })
+})
